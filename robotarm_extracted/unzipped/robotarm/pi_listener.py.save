@@ -1,0 +1,59 @@
+import requests
+import subprocess
+import time
+import sys
+
+GCP_VM_URL = "/api/" 
+SCRIPTS_PATH = "/path/to/your/scripts/" 
+
+def send_status(log_id, status_message):
+    """Posts the current status to the GCP VM."""
+    try:
+        data = {'log_id': log_id, 'new_status': status_message}
+        response = requests.post(GCP_VM_URL + "update_status.php", data=data)
+        response.raise_for_status()
+        print(f"Status reported for ID {log_id}: {status_message}")
+    except requests.exceptions.RequestException as e:
+        print(f"Error reporting status for ID {log_id}: {e}")
+
+def check_and_run():
+    try:
+        response = requests.get(GCP_VM_URL + "check_command.php")
+        response.raise_for_status() 
+        data = response.text.strip() # Example: "5|task1"
+
+        if data and data != "none":
+            try:
+                log_id, command = data.split('|', 1)
+                log_id = int(log_id)
+            except ValueError:
+                print(f"Received malformed command data: {data}")
+                return # Skip this iteration
+
+            print(f"Command received (ID {log_id}): {command}")
+            
+            # 1. Report RUNNING status 
+            send_status(log_id, "RUNNING")
+            
+            script_path = f"{SCRIPTS_PATH}{command}.py"
+            
+            try:
+                # 2. Execute the task script, passing the log_id as an argument
+                # The task script is now responsible for reporting the final status
+                subprocess.run(["python", script_path, str(log_id)], check=True)
+                
+            except subprocess.CalledProcessError as e:
+                # If the script fails internally (e.g., Python exception)
+                print(f"Script execution failed with error: {e}")
+                # Report ERROR status back to the server
+                send_status(log_id, "ERROR")
+                
+    except requests.exceptions.RequestException as e:
+        print(f"Error communicating with GCP VM: {e}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+
+if __name__ == "__main__":
+    while True:
+        check_and_run()
+        time.sleep(5)

@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cleanroom Robot Automation & Control | THE DILUTION (CAT403)</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <!-- Three.js for Real-Time 3D Digital Twin -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Top Healthcare Navigation Bar -->
+    <header class="navbar">
+      <div class="nav-brand">
+        <!-- Cleanroom Sparkle Brand Emblem -->
+        <div class="brand-emblem" title="TheDilution Platform">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2L14.4 9.6L22 12L14.4 14.4L12 22L9.6 14.4L2 12L9.6 9.6L12 2Z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-title-line">
+            <h1 class="brand-title">TheDilution • Cleanroom Controller</h1>
+            <span class="project-pill"><span class="dot"></span>LIVE ROBOT DECK</span>
+          </div>
+          <p class="brand-desc">AUTONOMOUS CLEANROOM SEQUENCING, 6-AXIS TELEOPERATION & 3D DIGITAL TWIN</p>
+        </div>
+      </div>
+
+      <div class="nav-controls">
+        <!-- Roof Interlock Safety Badge (Module 2 Safety Requirement) -->
+        <button id="btn-toggle-interlock" class="safety-interlock-btn" title="Toggle Roof Cover Interlock">
+          <span class="interlock-icon" id="interlock-icon">🔒</span>
+          <span id="interlock-text">Roof Interlock: CLOSED</span>
+        </button>
+
+        <!-- Hardware Connection Widget with Auto-Detect -->
+        <div class="conn-box">
+          <span class="conn-lbl">Pi IP:</span>
+          <input type="text" id="pi-ip" value="10.243.208.1:8080" placeholder="10.243.208.1:8080" title="Raspberry Pi Bridge IP">
+          <button id="btn-connect" class="btn-connect">Connect</button>
+          <button id="btn-auto-detect" class="btn-connect" style="background: rgba(14, 165, 233, 0.15); border-color: #0ea5e9; color: var(--cyan);" title="Auto-Scan Subnet for myCobot Pi">🔍 Auto-Detect</button>
+          <div id="status-badge" class="badge badge-disconnected">
+            <span class="pulse-dot"></span>
+            <span id="status-label">Disconnected</span>
+          </div>
+        </div>
+
+        <!-- Emergency Stop (Hardware E-Stop Path) -->
+        <button id="btn-estop" class="btn-estop" title="Emergency Stop (Esc)">
+          ⛔ E-STOP (Esc)
+        </button>
+      </div>
+    </header>
+
+    <!-- Real-Time Cleanroom Digital Clock & Theme Bar -->
+    <nav class="cleanroom-bar">
+      <div class="cleanroom-clock-wrap">
+        <div class="clock-icon-emblem">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </div>
+        <div class="clock-details">
+          <div class="clock-top-meta">
+            <span class="cleanroom-clock-lbl">CLEANROOM SYSTEM CLOCK</span>
+            <span class="clock-live-badge"><span class="pulse-dot"></span>REAL-TIME SYNC</span>
+          </div>
+          <div class="digital-clock-display">
+            <span class="digital-time" id="digital-clock-time">--:--:--</span>
+            <span class="digital-ampm" id="digital-clock-ampm">--</span>
+            <span class="digital-sep">•</span>
+            <span class="digital-date" id="digital-clock-date">Initializing...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cleanroom Dashboard Navigation Tabs -->
+      <div class="cleanroom-nav-tabs">
+        <button class="cleanroom-tab-btn active" data-tab="teleop" id="tab-btn-teleop" title="Manual Teleoperation & 3D Kinematics">
+          <span class="tab-icon">🎮</span>
+          <span>Manual Teleoperation</span>
+        </button>
+        <button class="cleanroom-tab-btn" data-tab="automation" id="tab-btn-automation" title="Autonomous Cleanroom Sequencing & Routines">
+          <span class="tab-icon">⚡</span>
+          <span>Robot Automation Deck</span>
+          <span class="tab-badge-pill">Autonomous</span>
+        </button>
+      </div>
+
+      <div class="cleanroom-bar-right">
+        <!-- Theme Switcher Button (Dark / Light Mode) -->
+        <button class="theme-toggle-btn" id="theme-toggle" title="Toggle Cleanroom Dark / Light Theme">
+          <span id="theme-icon">☀️</span>
+          <span id="theme-text">Light</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- TAB 1: 6-Axis Manual Teleoperation & 3D Digital Twin -->
+    <div class="tab-content active" id="tab-content-teleop">
+      <main class="main-content">
+      <!-- Left Column: 6-Slot Smart Medicine Pickup Tray & 6-Axis Manual Teleoperation -->
+      <div class="panel-column">
+        <!-- 1. 6-Slot Smart Medicine Pickup Tray (At top, alongside Digital Twin) -->
+        <div class="card tray-card">
+          <div class="card-header">
+            <div class="card-header-left">
+              <span class="dot-indicator"></span>
+              <h3>6-Slot Smart Medicine Pickup Tray</h3>
+              <span class="badge-tag">2 Rows × 3 Columns</span>
+            </div>
+            <span class="tray-counter" id="tray-counter-label">Occupied: 0 / 6</span>
+          </div>
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:12px;">
+            Physical delivery slots for compounded medication containers. Presence microswitches detect occupancy and drive LED indicators.
+          </p>
+
+          <!-- 2x3 Boxy Grid of Slots -->
+          <div class="tray-grid" id="tray-grid">
+            <!-- Rendered dynamically by app.js -->
+          </div>
+        </div>
+
+        <!-- 2. 6-Axis Arm Manual Teleoperation Interface (PLACED ABOVE ROBOT AUTOMATION DECK) -->
+        <div class="card teleop-card">
+          <div class="card-header">
+            <div class="card-header-left">
+              <span class="dot-indicator" style="background:var(--teal)"></span>
+              <h3>6-Axis Arm Manual Teleoperation</h3>
+              <span class="badge-tag">Keyboard / Sliders</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div class="step-btns">
+                <span>Step:</span>
+                <button class="btn-step" data-step="2">2°</button>
+                <button class="btn-step active" data-step="5">5°</button>
+                <button class="btn-step" data-step="10">10°</button>
+              </div>
+              <div class="speed-control">
+                <span>Speed: <strong id="speed-label">35%</strong></span>
+                <input type="range" id="speed-slider" min="1" max="100" value="35" style="width:70px">
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Posture & Servo Torque Controls -->
+          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin: 10px 0 14px; padding: 10px 14px; background: rgba(0, 212, 170, 0.08); border: 1px solid rgba(0, 212, 170, 0.3); border-radius: 8px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <button class="btn-preset" id="btn-quick-home-top" style="background: var(--teal); color: #0b1320; font-weight: 700; padding: 6px 14px; border-radius: 6px; border: none; cursor: pointer; font-size: 0.8rem; box-shadow: 0 0 10px rgba(0,212,170,0.4);">🏠 Standby (Home Pose)</button>
+              <span style="font-size:0.75rem; color:var(--text-muted);">Lifts arm off table</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span style="font-size:0.75rem; font-weight:700; color:var(--text-dim);">Motors:</span>
+              <button class="btn-step" id="btn-torque-lock" style="padding:4px 10px; font-size:0.75rem; background:rgba(0,180,216,0.2); border-color:var(--primary); color:var(--primary); font-weight:600;" title="Locks motor holding torque">⚡ Lock Torque</button>
+              <button class="btn-step" id="btn-torque-release" style="padding:4px 10px; font-size:0.75rem;" title="Releases motors for manual positioning">🔓 Free Mode</button>
+            </div>
+          </div>
+
+          <div class="axis-rows">
+            <!-- J1 -->
+            <div class="axis-row">
+              <span class="axis-name">J1 Base Waist</span>
+              <span class="axis-deg" id="disp-j1">0°</span>
+              <button class="btn-jog" data-joint="1" data-dir="-1" data-key="KeyA"><kbd>A</kbd> Rotate Left</button>
+              <button class="btn-jog" data-joint="1" data-dir="1" data-key="KeyD">Rotate Right <kbd>D</kbd></button>
+              <input type="range" class="axis-slider" id="slider-j1" min="-165" max="165" value="0">
+            </div>
+            <!-- J2 -->
+            <div class="axis-row">
+              <span class="axis-name">J2 Shoulder</span>
+              <span class="axis-deg" id="disp-j2">0°</span>
+              <button class="btn-jog" data-joint="2" data-dir="-1" data-key="KeyS"><kbd>S</kbd> Backward</button>
+              <button class="btn-jog" data-joint="2" data-dir="1" data-key="KeyW">Forward <kbd>W</kbd></button>
+              <input type="range" class="axis-slider" id="slider-j2" min="-135" max="135" value="0">
+            </div>
+            <!-- J3 -->
+            <div class="axis-row">
+              <span class="axis-name">J3 Elbow</span>
+              <span class="axis-deg" id="disp-j3">0°</span>
+              <button class="btn-jog" data-joint="3" data-dir="-1" data-key="KeyE"><kbd>E</kbd> Lower Arm</button>
+              <button class="btn-jog" data-joint="3" data-dir="1" data-key="KeyQ">Raise Arm <kbd>Q</kbd></button>
+              <input type="range" class="axis-slider" id="slider-j3" min="-150" max="150" value="0">
+            </div>
+            <!-- J4 -->
+            <div class="axis-row">
+              <span class="axis-name">J4 Wrist Pitch</span>
+              <span class="axis-deg" id="disp-j4">0°</span>
+              <button class="btn-jog" data-joint="4" data-dir="-1" data-key="KeyF"><kbd>F</kbd> Pitch Down</button>
+              <button class="btn-jog" data-joint="4" data-dir="1" data-key="KeyR">Pitch Up <kbd>R</kbd></button>
+              <input type="range" class="axis-slider" id="slider-j4" min="-145" max="145" value="0">
+            </div>
+            <!-- J5 -->
+            <div class="axis-row">
+              <span class="axis-name">J5 Wrist Roll</span>
+              <span class="axis-deg" id="disp-j5">0°</span>
+              <button class="btn-jog" data-joint="5" data-dir="-1" data-key="KeyG"><kbd>G</kbd> Roll CCW</button>
+              <button class="btn-jog" data-joint="5" data-dir="1" data-key="KeyT">Roll CW <kbd>T</kbd></button>
+              <input type="range" class="axis-slider" id="slider-j5" min="-165" max="165" value="0">
+            </div>
+            <!-- J6 -->
+            <div class="axis-row">
+              <span class="axis-name">J6 Gripper</span>
+              <span class="axis-deg" id="disp-j6">-129°</span>
+              <button class="btn-jog" data-joint="6" data-dir="-1" data-key="KeyH"><kbd>H</kbd> Rotate CCW</button>
+              <button class="btn-jog" data-joint="6" data-dir="1" data-key="KeyY">Rotate CW <kbd>Y</kbd></button>
+              <input type="range" class="axis-slider" id="slider-j6" min="-175" max="175" value="-129">
+            </div>
+          </div>
+
+          <!-- Gripper Actuator Controls -->
+          <div class="presets-bar" style="margin-top:10px;">
+            <span style="font-size:0.75rem; font-weight:700; color:var(--text-dim);">Gripper Actuator:</span>
+            <button class="btn-preset active" id="btn-gripper-open">👐 Open Gripper (100)</button>
+            <button class="btn-preset" id="btn-quick-home" style="margin-right:8px; background:var(--primary); color:#fff;">🏠 Standby (Home)</button>
+            <button class="btn-preset" id="btn-gripper-close">✊ Grip Container (50)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: ENLARGED Real-Time 3D Digital Twin & Telemetry -->
+      <div class="panel-column">
+        <div class="card twin-card">
+          <div class="card-header">
+            <div class="card-header-left">
+              <span class="dot-indicator"></span>
+              <h3>Real-Time 3D Digital Twin</h3>
+              <span class="badge-tag">Kinematic Visualizer</span>
+            </div>
+
+            <!-- Camera Perspective Preset Toolbar -->
+            <div class="cam-presets-bar">
+              <button class="btn-cam active" data-cam="iso" id="btn-cam-iso" title="Isometric Overview">Isometric</button>
+              <button class="btn-cam" data-cam="top" id="btn-cam-top" title="Top-down View">Top</button>
+              <button class="btn-cam" data-cam="front" id="btn-cam-front" title="Front Elevation">Front</button>
+              <button class="btn-cam" data-cam="side" id="btn-cam-side" title="Side Elevation">Side</button>
+              <button class="btn-cam" id="btn-reset-cam" title="Reset View Angle">Reset</button>
+            </div>
+          </div>
+
+          <!-- ENLARGED Three.js Canvas Container (520px height) -->
+          <div class="twin-viewport-container large-twin">
+            <canvas id="twin-canvas"></canvas>
+            <div class="twin-overlay-info" id="twin-coords-text">Pose: X: 100mm Y: 0mm Z: 200mm</div>
+            <div class="twin-overlay-angles" id="twin-angles-hud">J1: 0° J2: 0° J3: 0° J4: 0° J5: 0° J6: -129°</div>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.74rem; color:var(--text-dim); padding-top:4px;">
+            <span>🖱 Drag mouse to orbit • Scroll to zoom • Interactive 3D Cleanroom Canvas</span>
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+              <input type="checkbox" id="sim-checkbox">
+              <span>Offline Simulation Mode</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- System Architecture & Teleoperation Info -->
+        <div class="card" style="display:flex; flex-direction:column; gap:8px;">
+          <h4 style="font-size:0.85rem; font-weight:800; color:var(--text-main);">Compounding Robot Telemetry & Edge State</h4>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:0.75rem;">
+            <div style="background:var(--bg-card-sub); padding:10px; border-radius:6px; border:1px solid var(--border);">
+              <span style="color:var(--text-dim); display:block; font-size:0.68rem; font-weight:700;">MANIPULATOR</span>
+              <strong style="color:var(--cyan); font-size:0.82rem;">myCobot 280 Pi</strong>
+            </div>
+            <div style="background:var(--bg-card-sub); padding:10px; border-radius:6px; border:1px solid var(--border);">
+              <span style="color:var(--text-dim); display:block; font-size:0.68rem; font-weight:700;">COMMUNICATION</span>
+              <strong style="color:var(--teal); font-size:0.82rem;">UART @ 1M Baud (33 Hz)</strong>
+            </div>
+          </div>
+          <div id="footer-status-box" style="display:flex; align-items:center; gap:6px; font-size:0.74rem; color:var(--text-muted); padding-top:4px;">
+            <span id="footer-dot" style="width:6px; height:6px; border-radius:50%; background:var(--green)"></span>
+            <span id="footer-text">Cleanroom System Ready • Robot Automation & 3D Kinematics Active</span>
+          </div>
+        </div>
+      </div>
+      </main>
+    </div>
+
+    <!-- TAB 2: Dedicated Robot Automation Deck (New Tab) -->
+    <div class="tab-content" id="tab-content-automation">
+      <section class="automation-section">
+      <div class="card automation-card">
+        <div class="card-header">
+          <div class="card-header-left">
+            <span class="dot-indicator" style="background:var(--amber); box-shadow:0 0 8px var(--amber);"></span>
+            <h3>Robot Automation Deck</h3>
+            <span class="badge-tag">Autonomous Cleanroom Sequencing</span>
+          </div>
+          <div id="auto-status-pill" class="badge badge-auto-standby">
+            <span class="pulse-dot"></span>
+            <span id="auto-status-text">Standby</span>
+          </div>
+        </div>
+
+        <!-- 1. One-Touch Calibrated Target Poses -->
+        <div class="auto-section">
+          <div class="auto-section-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <span>ONE-TOUCH CALIBRATED TARGET POSES</span>
+          </div>
+          <div class="auto-poses-grid">
+            <button class="auto-pose-btn active" data-pose="home" title="Safe upright park position">
+              <span class="auto-pose-icon">🏠</span>
+              <div class="auto-pose-meta">
+                <span class="auto-pose-name">Home Standby</span>
+                <span class="auto-pose-desc">Upright 0° Standby</span>
+              </div>
+            </button>
+            <button class="auto-pose-btn" data-pose="door" title="Preparation Door / Pickup Area">
+              <span class="auto-pose-icon">🚪</span>
+              <div class="auto-pose-meta">
+                <span class="auto-pose-name">Pickup Window</span>
+                <span class="auto-pose-desc">Transfer Station</span>
+              </div>
+            </button>
+            <button class="auto-pose-btn" data-pose="dosing" title="Micro-Dosing Preparation Orientation">
+              <span class="auto-pose-icon">🧪</span>
+              <div class="auto-pose-meta">
+                <span class="auto-pose-name">Dilution / Dosing</span>
+                <span class="auto-pose-desc">Fluid Alignment</span>
+              </div>
+            </button>
+            <button class="auto-pose-btn" data-pose="slot_1" title="Dispensing Slot 1 (Point A)">
+              <span class="auto-pose-icon">📦</span>
+              <div class="auto-pose-meta">
+                <span class="auto-pose-name">Tray Slot 1 (A)</span>
+                <span class="auto-pose-desc">Row 1 • Col 1</span>
+              </div>
+            </button>
+            <button class="auto-pose-btn" data-pose="slot_2" title="Dispensing Slot 2 (Point B)">
+              <span class="auto-pose-icon">📦</span>
+              <div class="auto-pose-meta">
+                <span class="auto-pose-name">Tray Slot 2 (B)</span>
+                <span class="auto-pose-desc">Row 1 • Col 2</span>
+              </div>
+            </button>
+            <button class="auto-pose-btn" data-pose="slot_3" title="Dispensing Slot 3 (Point C)">
+              <span class="auto-pose-icon">📦</span>
+              <div class="auto-pose-meta">
+                <span class="auto-pose-name">Tray Slot 3 (C)</span>
+                <span class="auto-pose-desc">Row 1 • Col 3</span>
+              </div>
+            </button>
+            <button class="auto-pose-btn" data-pose="slot_4" title="Dispensing Slot 4">
+              <span class="auto-pose-icon">📦</span>
+              <div class="auto-pose-meta">
+                <span class="auto-pose-name">Tray Slot 4</span>
+                <span class="auto-pose-desc">Row 2 • Col 1</span>
+              </div>
+            </button>
+            <button class="auto-pose-btn" data-pose="slot_5" title="Dispensing Slot 5">
+              <span class="auto-pose-icon">📦</span>
+              <div class="auto-pose-meta">
+                <span class="auto-pose-name">Tray Slot 5</span>
+                <span class="auto-pose-desc">Row 2 • Col 2</span>
+              </div>
+            </button>
+            <button class="auto-pose-btn" data-pose="slot_6" title="Dispensing Slot 6">
+              <span class="auto-pose-icon">📦</span>
+              <div class="auto-pose-meta">
+                <span class="auto-pose-name">Tray Slot 6</span>
+                <span class="auto-pose-desc">Row 2 • Col 3</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. Dual Sub-Section: Automated Routine Pipeline + Custom Waypoints -->
+        <div class="auto-columns-grid">
+          <!-- Left Sub-Card: Automated Routine Pipeline -->
+          <div class="auto-pipeline-card">
+            <div class="auto-section-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              <span>AUTOMATED SEQUENCE ROUTINES</span>
+            </div>
+            <div class="auto-controls-bar">
+              <div class="auto-slot-select-wrap">
+                <label for="auto-target-slot">Target Delivery Slot:</label>
+                <select id="auto-target-slot" class="auto-select">
+                  <option value="auto">Auto (Next Free Slot)</option>
+                  <option value="1">Slot 1 (Row 1 • Col 1)</option>
+                  <option value="2">Slot 2 (Row 1 • Col 2)</option>
+                  <option value="3">Slot 3 (Row 1 • Col 3)</option>
+                  <option value="4">Slot 4 (Row 2 • Col 1)</option>
+                  <option value="5">Slot 5 (Row 2 • Col 2)</option>
+                  <option value="6">Slot 6 (Row 2 • Col 3)</option>
+                </select>
+              </div>
+
+              <div class="auto-action-btns">
+                <button class="btn-auto-run" id="btn-run-transfer">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  <span>Run Transfer Sequence</span>
+                </button>
+                <button class="btn-auto-sweep" id="btn-run-sweep" title="Run diagnostic calibration sweep through work envelope">
+                  <span>🔄 Diagnostic Sweep</span>
+                </button>
+                <button class="btn-auto-abort" id="btn-abort-auto" title="Immediately abort running automation sequence">
+                  <span>⏹ Abort</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Sequence Live Stepper Display -->
+            <div class="auto-stepper" id="auto-stepper">
+              <div class="stepper-step" id="step-node-home">
+                <span class="step-circle">1</span>
+                <span class="step-label">Standby</span>
+              </div>
+              <div class="stepper-line"></div>
+              <div class="stepper-step" id="step-node-pick">
+                <span class="step-circle">2</span>
+                <span class="step-label">Pickup</span>
+              </div>
+              <div class="stepper-line"></div>
+              <div class="stepper-step" id="step-node-grip">
+                <span class="step-circle">3</span>
+                <span class="step-label">Grip Vial</span>
+              </div>
+              <div class="stepper-line"></div>
+              <div class="stepper-step" id="step-node-place">
+                <span class="step-circle">4</span>
+                <span class="step-label">Transfer</span>
+              </div>
+              <div class="stepper-line"></div>
+              <div class="stepper-step" id="step-node-release">
+                <span class="step-circle">5</span>
+                <span class="step-label">Release</span>
+              </div>
+              <div class="stepper-line"></div>
+              <div class="stepper-step" id="step-node-ready">
+                <span class="step-circle">6</span>
+                <span class="step-label">Ready</span>
+              </div>
+            </div>
+            <div class="auto-step-live-text" id="auto-step-live-text">Automation Standby • Choose a calibrated pose or click Run Transfer Sequence</div>
+          </div>
+
+          <!-- Right Sub-Card: Teach & Save Custom Waypoints -->
+          <div class="custom-wp-card">
+            <div class="auto-section-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              <span>CUSTOM AUTOMATION WAYPOINTS (TEACH & REPEAT)</span>
+            </div>
+            <div class="custom-wp-row">
+              <input type="text" id="custom-wp-name" class="custom-wp-input" placeholder="Enter waypoint name (e.g. Centrifuge)...">
+              <button class="btn-save-wp" id="btn-save-wp">
+                <span>💾 Save Pose</span>
+              </button>
+            </div>
+            <div class="custom-waypoints-list" id="custom-waypoints-list">
+              <!-- Dynamically populated from waypoints.json -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Real-Time Kinematic Arm Telemetry Status for Tab 2 -->
+      <div class="card auto-telemetry-card">
+          <div class="auto-telemetry-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="pulse-dot" style="background:var(--cyan); box-shadow:0 0 6px var(--cyan);"></span>
+              <strong style="font-size:0.78rem; color:var(--text-main);">Live Manipulator Telemetry (myCobot 280 Pi)</strong>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px;">
+              <span class="telemetry-speed-badge">Speed: <span id="auto-telemetry-speed">35%</span></span>
+              <button class="btn-switch-to-twin" id="btn-view-twin" title="Switch to 3D Digital Twin View">
+                <span>👁️ View in 3D Twin</span>
+              </button>
+            </div>
+          </div>
+          <div class="auto-angles-hud-grid">
+            <div class="auto-angle-box"><span class="auto-angle-lbl">J1 Base</span><strong class="auto-angle-val" id="disp-auto-j1">0°</strong></div>
+            <div class="auto-angle-box"><span class="auto-angle-lbl">J2 Shoulder</span><strong class="auto-angle-val" id="disp-auto-j2">0°</strong></div>
+            <div class="auto-angle-box"><span class="auto-angle-lbl">J3 Elbow</span><strong class="auto-angle-val" id="disp-auto-j3">0°</strong></div>
+            <div class="auto-angle-box"><span class="auto-angle-lbl">J4 Pitch</span><strong class="auto-angle-val" id="disp-auto-j4">0°</strong></div>
+            <div class="auto-angle-box"><span class="auto-angle-lbl">J5 Roll</span><strong class="auto-angle-val" id="disp-auto-j5">0°</strong></div>
+            <div class="auto-angle-box"><span class="auto-angle-lbl">J6 Gripper</span><strong class="auto-angle-val" id="disp-auto-j6">-129°</strong></div>
+            <div class="auto-angle-box auto-coord-box"><span class="auto-angle-lbl">Cartesian Coordinates</span><strong class="auto-angle-val" id="disp-auto-coords">X: 100mm Y: 0mm Z: 200mm</strong></div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Floating Toast Notification for Theme & Automation -->
+  <div class="toast-container">
+    <div class="theme-toast" id="theme-toast">Switched to Dark Mode</div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
